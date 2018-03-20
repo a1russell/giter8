@@ -30,6 +30,7 @@ import org.stringtemplate.v4.compiler.STException
 import org.stringtemplate.v4.misc.STMessage
 
 import scala.collection.mutable
+import scala.math.{BigInt, ceil, log, pow}
 import scala.util.Try
 import scala.util.control.Exception.{allCatch, catching}
 
@@ -215,6 +216,21 @@ object G8 {
   def snakeCase(s: String)    = s.replaceAll("""[\s\.\-]+""", "_")
   def packageDir(s: String)   = s.replace(".", System.getProperty("file.separator"))
   def addRandomId(s: String)  = s + "-" + new java.math.BigInteger(256, new java.security.SecureRandom).toString(32)
+  def addRandom(s: String, length: Int, radix: Int): String = {
+    val adjustedLength = length - s.length
+    if (adjustedLength < 1 || radix < 1) {
+      return ""
+    }
+    val adjustedRadix = if (radix > 36) 36 else radix
+    val neededBits = ceil(log(pow(adjustedRadix, adjustedLength) + 1) / log(2)).toInt
+    var randomInt = BigInt(0)
+    do {
+      randomInt = BigInt(new java.math.BigInteger(neededBits, new java.security.SecureRandom))
+    } while (randomInt >= pow(adjustedRadix, adjustedLength - 1).toInt)
+    val randomNumber = randomInt.toString(adjustedRadix).take(adjustedLength)
+    val padding = "0" * (adjustedLength - randomNumber.length)
+    s + padding + randomNumber
+  }
 
   val Param = """^--(\S+)=(.+)$""".r
   implicit class RichFile(file: File) {
@@ -554,6 +570,8 @@ class AugmentedStringRenderer extends org.clapper.scalasti.AttributeRenderer[Aug
     }
   }
 
+  private val MatchesRandom = raw"""(?:generate-)?random\s*\(\s*(\d+)\s*~\s*(\d+)\s*\)""".r
+
   def format(value: String, formatName: String): String = formatName match {
     case "upper"    | "uppercase"       => value.toUpperCase
     case "lower"    | "lowercase"       => value.toLowerCase
@@ -567,6 +585,7 @@ class AugmentedStringRenderer extends org.clapper.scalasti.AttributeRenderer[Aug
     case "norm"     | "normalize"       => normalize(value)
     case "snake"    | "snake-case"      => snakeCase(value)
     case "packaged" | "package-dir"     => packageDir(value)
+    case MatchesRandom(length, radix)   => addRandom(value, length.toInt, radix.toInt)
     case "random"   | "generate-random" => addRandomId(value)
     case _ => value
   }
