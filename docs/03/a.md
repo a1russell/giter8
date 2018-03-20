@@ -24,6 +24,7 @@ The formatting options are:
     norm     | normalize       : all lowercase with hyphens (lowercase, hyphenate)
     snake    | snake-case      : replace spaces and dots with underscores
     packaged | package-dir     : replace dots with slashes (net.databinder -> net/databinder)
+    random($length~$radix)     : appends `$length` random digits of radix `$radix` to the given string
     random   | generate-random : appends random characters to the given string
 
 A `name` field with a value of `My Project` could be rendered in several ways:
